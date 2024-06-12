@@ -53,8 +53,8 @@ PlatformIO will download the required libraries and build the project for you.
 
 If you prefer to use the Arduino IDE, then it should be easy to copy the C++ code.  The libraries can be added through the Arduino IDE library manager (https://docs.arduino.cc/software/ide-v1/tutorials/installing-libraries/).
 
-[!IMPORTANT]  
-You will have to copy the `secrets_template.h` to `secrets.h` and fill in the constants with the correct values for your network.  
+> **Warning**   
+> You will have to copy the `secrets_template.h` to `secrets.h` and fill in the constants with the correct values for your network.  
 
 ## Using the firmware
 
