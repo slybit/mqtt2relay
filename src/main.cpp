@@ -19,7 +19,14 @@
 #include <PubSubClient.h>
 #include "secrets.h"
 
-//#define DEBUG                                   // uncomment for debugging
+/* -------------------------------------------------CONFIG-------------------------------------------------------------*/
+
+// uncomment for debugging; this will give debug output to Serial out instead of relay commands
+//#define DEBUG
+
+// uncomment to force the fact that only one relay can be active at the same time
+// this has NO EFFECT on relay triggers!!
+#define EXCLUSIVE
 
 // messages that are send to the MQTT bus as 'on' and 'off' state
 // must be of type char*
@@ -30,11 +37,17 @@
 // length of a trigger in milliseconds (on->off or off-> on)
 #define TRIGGER_LENGTH 200
 
+
+
 // Secrets are defined in secrets.h
 // Must include
 // - const char *ssid = "";
 // - const char *password = "";
 // - const char *mqtt_server = "";
+
+
+/* ---------------------------------------------------------------------------------------------------------------------*/
+
 
 /*
 Define global variables
@@ -116,10 +129,28 @@ void getRelayCommand(byte id, bool on, byte *cmd)
         cmd[3] = 0xA0 + id;
 }
 
-void setRelayState(byte id, bool s)
+// Checks if it is ok to turn this relay on (depends on the EXCLUSIVE flag)
+bool canActivateRelay(byte id, bool s) {
+    // if not in exclusive mode, return true
+    #ifndef EXCLUSIVE
+        return true;
+    #endif
+    // if we are deactivating a relay, return true
+    if (!s) return true;
+    // if we have 0 active relays, return true
+    if (STATE == 0) return true;
+    // if we are turning off the one active relay, return true, otherwise return false
+    byte m = 0x01 << (id - 1);
+    return (m == STATE);
+}
+
+// Returns true if we sent out a relay command
+bool setRelayState(byte id, bool s)
 {
     if (id < 1 || id > 8)
-        return;
+        return false;
+    if (!canActivateRelay(id, s))
+        return false;
     // create a bit mask in the right position
     byte m = 0x01 << (id - 1);
 
@@ -140,6 +171,7 @@ void setRelayState(byte id, bool s)
     {
         STATE = STATE & ~m; // clear bit at position id / m
     }
+    return true;
 }
 
 bool getRelayState(byte id)
@@ -287,13 +319,16 @@ void MQTTCallback(char *_topic, byte *message, unsigned int length)
         on ?  consoleLn("ON") : consoleLn("OFF");
 
         // switch the relay
-        setRelayState(relayId, on);
+        bool cmdSent = setRelayState(relayId, on);
 
-        // respond with an MQTT message
-        String t = "relay/status/ID/";
-        t.replace("ID", ID);
-        t.concat(relayId);
-        client.publish(t.c_str(), on ? ON : OFF);
+        // respond with an MQTT message, if we we sent out a relay command
+        if (cmdSent)
+        {
+            String t = "relay/status/ID/";
+            t.replace("ID", ID);
+            t.concat(relayId);
+            client.publish(t.c_str(), on ? ON : OFF);
+        }
     }
     else if (topic.startsWith("RELAY/TRIGGER/MATCH/") && topic.length() == 21)
     {
