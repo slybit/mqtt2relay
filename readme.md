@@ -87,13 +87,21 @@ Controlling the relays happens with simple MQTT messages:
 | relay/trigger/`[DEVID]`/`[relay #]` |  `on/off`, `1/0`, `true/false`                 | 
 
 
-The `/trigger/` command toggles a relay switch briefly to `on` to `off` and back, depending on the message that was included (message `on` triggers the relay to briefly go to `on`).
+The `/trigger/` command toggles a relay switch briefly to `on` or `off` and back, depending on the message that was included (message `on` triggers the relay to briefly go to `on`).
 
 After a `/set/` command, the board will respond with a status message:
 
 | Topic                                  | Message                                        |
 | -----                                  | -------                                        |
 | relay/status/`[DEVID]`/`[relay #]`     | `1/0`                                          |
+
+After a `/trigger/` command, the board will respond with 2 status messages:
+
+| Topic                                  | Message                                        |
+| -----                                  | -------                                        |
+| relay/status/`[DEVID]`/`[relay #]`     | `triggered`                                    |
+| relay/status/`[DEVID]`/`[relay #]`     | `1/0` (the final state of the relay switch)    |
+
 
 #### Requesting relay state 
 
