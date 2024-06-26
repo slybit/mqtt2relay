@@ -60,17 +60,53 @@ If you prefer to use the Arduino IDE, then it should be easy to copy the C++ cod
 
 After flashing the compiled project to the ESP-01, you can control the relays with MQTT messages. 
 
+### Unique device ID (DEVID)
+
+To allow running multiple relay modules with this firmware in the same network, it is necessary to be able to target a certain device with an MQTT message.  To make this possible, each device is identified with its unique device ID (DEVID).   This DEVID is used as part of the MQTT topic for both inbound and outbound MQTT messages to and from a device.
+
+#### Device Boot 
+
 When the module boots, it will connect to your MQTT server and publish 2 messages:
 
-| Topic | Message                              |
-| ----- | -------                              |
-| relay/status/ID |                            |
+| Topic                      | Message                                        |
+| -----                      | -------                                        |
+| relay/status/ID            | Unique ID of the device `[DEVID]`              |
+| relay/status/`[DEVID]`/IP  | IP address of the device                       | 
+
+#### Manually requesting the ID and IP 
+
+All devices in your network will respond with the messages above if you publish an MQTT message to the topic **`relay/get/ID`**.
+
+### Controlling the relays on the board
+
+Controlling the relays happens with simple MQTT messages:
+
+| Topic                               | Message                                        |
+| -----                               | -------                                        |
+| relay/set/`[DEVID]`/`[relay #]`     | `on/off`, `1/0`, `true/false`                  |
+| relay/trigger/`[DEVID]`/`[relay #]` |  `on/off`, `1/0`, `true/false`                 | 
 
 
+The `/trigger/` command toggles a relay switch briefly to `on` to `off` and back, depending on the message that was included (message `on` triggers the relay to briefly go to `on`).
+
+After a `/set/` command, the board will respond with a status message:
+
+| Topic                                  | Message                                        |
+| -----                                  | -------                                        |
+| relay/status/`[DEVID]`/`[relay #]`     | `1/0`                                          |
+
+#### Requesting relay state 
+
+The current state of a relay switch can be requested by sending an MQTT message to the topic **relay/get/`[DEVID]`/`[relay #]`**.
 
 
+### 'Exclusive mode'
 
-
+By uncommenting the line
+```C
+#define EXCLUSIVE
+```
+the firmware will ensure that only one relay can be closed at any given time.  This is useful when using the relay board to control the speeds of a ventilation system for example.
 
 ## Trouble shooting
 
